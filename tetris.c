@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <GL/glut.h>
+#include <string.h>
+#include <math.h>
 
 /* Postavljam ID i interval tajmera */
 #define TIMER_ID 0
@@ -10,6 +12,8 @@
 /* Postavljam dimenzije matrice */
 #define MAX_X 12
 #define  MAX_Y 22
+
+#define MAX_LENGTH_STRING 50
 
 /* Deklarisanje callback funkcija */
 static void on_keyboard(unsigned char key, int x, int y);
@@ -30,6 +34,8 @@ static void rotacije_na_granicama(void);
 static void iscrtavanje_matrice_na_ekran(void);
 static void brisanje_reda(void);
 
+static void renderStrokeString(int x, int y,int z,void* font, char *string);
+
 
 
 /* Deklarisanje globalnih promenljivi */
@@ -46,6 +52,9 @@ static int x_trenutno = 5, y_trenutno = 0;
 static int levo_desno = 0;
 static int pala_je_figura = 1;
 static int x_stop,y_stop;
+static int skor = 0;
+
+static char word[MAX_LENGTH_STRING]; /*Koristimo staticku alokaciju za reci koje ispisujemo, dali smo pretpostavku o njihovoj duzini */
 
 
 int main(int argc, char **argv){
@@ -114,6 +123,7 @@ static void on_keyboard(unsigned char key, int x, int y){
 			transliraj = 0;
 			x_trenutno = 5;
 			y_trenutno = 0;
+			skor = 0;
 			animation_ongoing = 0;
 			resetuj_matricu();
 			glutPostRedisplay();
@@ -128,6 +138,8 @@ static void on_keyboard(unsigned char key, int x, int y){
 		case 'W':
 			rotiraj_scenu -=5;
 			glutPostRedisplay();
+			break;
+		case 32:			
 			break;
 	}
 
@@ -201,9 +213,39 @@ static void on_display(void){
 		iscrtavanje_matrice_na_ekran();
 	glPopMatrix();
 
+	/* Ispisujemo skor */
+	glPushMatrix();
+		    sprintf(word,"Score: %d", skor);
+		    /* Postavljamo koordinate ispisivanja teksta*/
+		    const int x = 100;
+		    const int y = -2100;
+		    const int z = 0;
+		    glPushMatrix();
+		        glPushAttrib(GL_LINE_BIT);
+		            glLineWidth(4); /*Postavljamo debljinu linije */
+		            renderStrokeString(x,y,z,GLUT_STROKE_MONO_ROMAN,word);
+		        glPopAttrib();
+		    glPopMatrix();
 
+	glPopMatrix();
 	glutSwapBuffers();
 }
+
+/* Kod za ispisivanje teksta preuzet od kolege :D https://github.com/MATF-RG19/RG42-snake-3d/blob/master/Sources/drawing.c */
+static void renderStrokeString(int x, int y,int z,void* font, char *string) 
+{
+    int len; /*duzina stringa */
+    glColor3f(1,0,0); /*Postavljanje boje teksta */
+    /*Postavljamo dimenzije slova */
+    glScalef(0.001,0.001,1);
+    glTranslatef(x,y,z);
+    len = strlen(string);
+    int i;
+    for (i = 0; i < len; i++)
+        glutStrokeCharacter(font, string[i]);
+
+}
+
 
 static void on_timer(int value){
 	if(value != TIMER_ID)
@@ -223,6 +265,8 @@ static void on_timer(int value){
 			x_trenutno = 5;
 			y_trenutno = 0;
 			pala_je_figura = 0;
+			if(!matrica[y_trenutno+1][x_trenutno])
+				skor += 7;
 		}
 	}
 
