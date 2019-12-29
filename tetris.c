@@ -7,7 +7,8 @@
 
 /* Postavljam ID i interval tajmera */
 #define TIMER_ID 0
-#define TIMER_INTERVAL 400
+static int TIMER_INTERVAL = 400;
+static int pomocni_tajmer = 0;
 
 /* Postavljam dimenzije matrice */
 #define MAX_X 12
@@ -33,6 +34,7 @@ static void kolizije(void);
 static void rotacije_na_granicama(void);
 static void iscrtavanje_matrice_na_ekran(void);
 static void brisanje_reda(void);
+static void promeni_nivo(void);
 
 static void renderStrokeString(int x, int y,int z,void* font, char *string);
 
@@ -53,6 +55,8 @@ static int levo_desno = 0;
 static int pala_je_figura = 1;
 static int x_stop,y_stop;
 static int skor = 0;
+static int nivo = 1;
+static int skinut_nivo = 0;
 
 static char word[MAX_LENGTH_STRING]; /*Koristimo staticku alokaciju za reci koje ispisujemo, dali smo pretpostavku o njihovoj duzini */
 
@@ -139,7 +143,12 @@ static void on_keyboard(unsigned char key, int x, int y){
 			rotiraj_scenu -=5;
 			glutPostRedisplay();
 			break;
-		case 32:			
+		case 32:
+			if (animation_ongoing)
+			{
+				kolizije();
+				glutPostRedisplay();
+			}
 			break;
 	}
 
@@ -155,6 +164,11 @@ static void on_specijalkey(int key, int x, int y){
 			}
 			break;
 		case GLUT_KEY_DOWN:
+			if (animation_ongoing)
+			{
+				kolizije();
+				glutPostRedisplay();
+			}
 			break;
 		case GLUT_KEY_LEFT:
 			if(animation_ongoing)
@@ -215,15 +229,31 @@ static void on_display(void){
 
 	/* Ispisujemo skor */
 	glPushMatrix();
-		    sprintf(word,"Score: %d", skor);
+		    sprintf(word,"Skor: %d", skor);
 		    /* Postavljamo koordinate ispisivanja teksta*/
-		    const int x = 100;
+		    const int x = 0;
 		    const int y = -2100;
 		    const int z = 0;
 		    glPushMatrix();
 		        glPushAttrib(GL_LINE_BIT);
-		            glLineWidth(4); /*Postavljamo debljinu linije */
+		            glLineWidth(3); /*Postavljamo debljinu linije */
 		            renderStrokeString(x,y,z,GLUT_STROKE_MONO_ROMAN,word);
+		        glPopAttrib();
+		    glPopMatrix();
+
+	glPopMatrix();
+
+	/* Ispisujemo nivo */
+	glPushMatrix();
+		    sprintf(word,"Nivo: %d", nivo);
+		    /* Postavljamo koordinate ispisivanja teksta*/
+		    const int x2 = -1000;
+		    const int y2 = -2100;
+		    const int z2 = 0;
+		    glPushMatrix();
+		        glPushAttrib(GL_LINE_BIT);
+		            glLineWidth(3); /*Postavljamo debljinu linije */
+		            renderStrokeString(x2,y2,z2,GLUT_STROKE_MONO_ROMAN,word);
 		        glPopAttrib();
 		    glPopMatrix();
 
@@ -253,9 +283,11 @@ static void on_timer(int value){
 
 	if (animation_ongoing)
 	{
+		skinut_nivo = 0;
 		kolizije();
 		popuni_matricu();
 		brisanje_reda();
+
 		if(pala_je_figura){
 			random_broj = (rand() % 7) + 1;
 			levo_desno = 0;
@@ -265,11 +297,12 @@ static void on_timer(int value){
 			x_trenutno = 5;
 			y_trenutno = 0;
 			pala_je_figura = 0;
-			if(!matrica[y_trenutno+1][x_trenutno])
-				skor += 7;
+			if(!matrica[y_trenutno+1][x_trenutno]){
+				skor += 4;
+				promeni_nivo();
+			}
 		}
 	}
-
 
 	glutPostRedisplay();
 	if(animation_ongoing)
@@ -1777,17 +1810,97 @@ static void brisanje_reda(void){
 	for(j = 1; j < MAX_Y-1; j++){
 		for(i = 1; i < MAX_X-1; i++){
 			if(matrica[j][i] == 0)
-				break;\
+				break;
 			/* red je popunjen, obrisi ga */
 			if(i == MAX_X-2){ 
 				for(k = j; k > 0; k--){
 					for(m = 0; m < MAX_X-1; m++){
 						matrica[k][m] = matrica[k-1][m];
 					}
-
 				}
+				skor += 5;
+				skinut_nivo += 1;
 			}
 
+		}
+	}
+}
+
+/* Gledamo da li treba da se poveca nivo */
+static void promeni_nivo(void){
+	if(skinut_nivo == 0){
+		if(skor >= 900 && skor < 904){
+			TIMER_INTERVAL -= 35;
+			nivo = 10;
+		}
+		else if(skor >= 800 && skor < 804){
+			TIMER_INTERVAL -= 35;
+			nivo = 9;
+		}
+		else if(skor >= 700 && skor < 704){
+			TIMER_INTERVAL -= 35;
+			nivo = 8;
+		}
+		else if(skor >= 600 && skor < 604){
+			TIMER_INTERVAL -= 35;
+			nivo = 7;
+		}
+		else if(skor >= 500 && skor < 504){
+			TIMER_INTERVAL -= 35;
+			nivo = 6;
+		}
+		else if(skor >= 400 && skor < 404){
+			TIMER_INTERVAL -= 35;
+			nivo = 5;
+		}
+		else if(skor >= 300 && skor < 304){
+			TIMER_INTERVAL -= 35;
+			nivo = 4;
+		}
+		else if(skor >= 200 && skor < 204){
+			TIMER_INTERVAL -= 35;
+			nivo = 3;
+		}
+		else if(skor >= 100 && skor < 104){
+			TIMER_INTERVAL -= 35;
+			nivo = 2;
+		}
+	} else {
+		if(skor >= 900 && skor < (904 + skinut_nivo*10)){
+			TIMER_INTERVAL -= 35;
+			nivo = 10;
+		}
+		else if(skor >= 800 && skor < (804 + skinut_nivo*10)){
+			TIMER_INTERVAL -= 35;
+			nivo = 9;
+		}
+		else if(skor >= 700 && skor < (704 + skinut_nivo*10)){
+			TIMER_INTERVAL -= 35;
+			nivo = 8;
+		}
+		else if(skor >= 600 && skor < (604 + skinut_nivo*10)){
+			TIMER_INTERVAL -= 35;
+			nivo = 7;
+		}
+		else if(skor >= 500 && skor < (504 + skinut_nivo*10)){
+			TIMER_INTERVAL -= 35;
+			nivo = 6;
+		}
+		else if(skor >= 400 && skor < (404 + skinut_nivo*10)){
+			TIMER_INTERVAL -= 35;
+			nivo = 5;
+		}
+		else if(skor >= 300 && skor < (304 + skinut_nivo*10)){
+			TIMER_INTERVAL -= 35;
+			nivo = 4;
+		}
+		else if(skor >= 200 && skor < (204 + skinut_nivo*10)){
+			TIMER_INTERVAL -= 35;
+			nivo = 3;
+		}
+		else if(skor >= 100 && skor < (104 + skinut_nivo*10)){
+			TIMER_INTERVAL -= 35;
+			nivo = 2;
 		}
 	}
 }
